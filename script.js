@@ -1,8 +1,12 @@
+/* main.js – FINAL (Clear button now reloads the page) */
+
+/* global Matter */
 const { Engine, Render, Runner, Bodies, World, Body, Events } = Matter;
 
 const canvas   = document.getElementById("canvas");
 const clearBtn = document.getElementById("clearBtn");
 
+/* ---------- engine & Hi‑DPI canvas ---------- */
 const engine = Engine.create();
 const render = Render.create({
   canvas,
@@ -34,6 +38,7 @@ window.addEventListener("resize", () => {
 Render.run(render);
 Runner.run(Runner.create(), engine);
 
+/* ---------- gravity‑cancel + keep floaters moving ---------- */
 Events.on(engine, "beforeUpdate", () => {
   const g = engine.world.gravity;
   if (!g.scale) return;
@@ -54,7 +59,7 @@ Events.on(engine, "beforeUpdate", () => {
   });
 });
 
-
+/* ---------- ground, walls, sensor ceiling ---------- */
 let ground, leftWall, rightWall, topWall;
 const WALL = 120, GROUND_H = 80, CEIL_H = 80;
 
@@ -76,8 +81,8 @@ function rebuildBoundaries () {
 }
 rebuildBoundaries();
 
-
-const RADIUS = 36, OVERLAP = 2, cache = {};
+/* ---------- letter spawning ---------- */
+const RADIUS = 38, OVERLAP = 1.3, cache = {};
 
 function scaleFor (img){
   const dpr = window.devicePixelRatio || 1;
@@ -103,6 +108,7 @@ function makeLetterBody (ch) {
   return body;
 }
 
+/* ---------- word assembly ---------- */
 let buffer = "";
 let wordLetters = [];
 const MAX_WORD = 12;
@@ -122,12 +128,12 @@ function alignWordAndHold () {
   });
 
   setTimeout(() => {
-    topWall.isSensor = false;   
+    topWall.isSensor = false;   // ceiling solid for float phase
     wordLetters.forEach(b => {
       b.isStatic = false;
       b.frictionAir = 0;
       b.plugin = { noGravity: true };
-      const force = 0.02;
+      const force = 0.06;
       Body.applyForce(b,b.position,{
         x:(Math.random()-0.5)*force,
         y:(Math.random()-0.8)*force
@@ -138,11 +144,12 @@ function alignWordAndHold () {
   }, 2000);
 }
 
+/* ---------- key handling ---------- */
 document.addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
 
   if (/^[a-z]$/.test(k)) {
-    if (buffer.length === 0) topWall.isSensor = true; 
+    if (buffer.length === 0) topWall.isSensor = true; // allow falling
     if (buffer.length >= MAX_WORD) return;
     buffer += k;
     wordLetters.push(makeLetterBody(k));
@@ -151,6 +158,7 @@ document.addEventListener("keydown", e => {
   }
 });
 
+/* ---------- sprite‑scale upkeep ---------- */
 Events.on(engine,"afterUpdate",()=>{
   engine.world.bodies.forEach(b=>{
     const tex=b.render.sprite.texture;
@@ -164,6 +172,7 @@ Events.on(engine,"afterUpdate",()=>{
   });
 });
 
+/* ---------- CLEAR button – simply reload page ---------- */
 clearBtn.addEventListener("click", () => {
   window.location.reload();
 });
